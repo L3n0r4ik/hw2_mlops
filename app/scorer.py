@@ -18,7 +18,8 @@ def make_pred(dt, source_info="kafka"):
     preds = model.predict_proba(processed_df)[:, 1]
     submission = pd.DataFrame({
         "index": dt.index,
-        "prediction": preds
+        "prediction": preds,
+        "fraud_flag": int(preds > 0.01)
     })
 
     logger.info("Prediction finished. Rows: %d", len(submission))

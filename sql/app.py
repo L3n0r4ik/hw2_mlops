@@ -21,6 +21,7 @@ def main() -> None:
 
     dsn = os.getenv("PG_DSN", "postgresql+psycopg2://fraud:fraud@postgres:5432/fraud")
     engine = create_engine(dsn, pool_pre_ping=True)
+    engine.connect()
 
     consumer = Consumer(consumer_config)
     consumer.subscribe([SCORING_TOPIC])
@@ -32,14 +33,16 @@ def main() -> None:
         if msg.error():
             continue
         try:
-            data = json.loads(msg.value().decode('utf-8'))
+            data = json.loads(msg.value().decode('utf-8'))[0]
             upsert_score(
                 engine=engine,
                 transaction_id=str(data["transaction_id"]),
-                score=float(data["data"]["prediction"]),
-                fraud_flag=int(0),
+                score=float(data["prediction"]),
+                fraud_flag=int(data["fraud_flag"]),
             )
         except Exception as e:
+            print("EXCEPTION")
+            print(repr(e))
             time.sleep(0.1)
 
 

@@ -98,6 +98,8 @@ services:
 
   postgres:
       image: postgres:16-alpine
+      networks:
+      - ml-scorer
       environment:
         POSTGRES_DB: fraud
         POSTGRES_USER: fraud
@@ -115,15 +117,29 @@ services:
   scorer_to_db:
       build:
         context: ./sql
+      networks:
+      - ml-scorer
       depends_on:
-        - kafka
-        - postgres
+        kafka:
+          condition: service_healthy
+        postgres:
+          condition: service_healthy
       environment:
         KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
-        SCORES_TOPIC: "scores"
-        GROUP_ID: "sink-v1"
         PG_DSN: "postgresql+psycopg2://fraud:fraud@postgres:5432/fraud"
-
+  ui:
+      build:
+        context: ./ui
+      networks:
+      - ml-scorer
+      depends_on:
+        postgres:
+          condition: service_healthy
+      environment:
+        PG_DSN: "postgresql+psycopg2://fraud:fraud@postgres:5432/fraud"
+      ports:
+        - "8503:8503"
+      restart: unless-stopped
 
 networks:
   ml-scorer:
